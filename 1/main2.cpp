@@ -7,6 +7,10 @@
 #include <utility>
 #include <unordered_map>
 
+/// @brief Iterate through the file and split each line into two integers separated by a space
+/// Store each integer in a vector for each column, and return as a pair of vectors.
+/// @param input file path string. The file must contain two columns of integers separated by spaces.
+/// @return A pair object containing vectors of the two columns.
 std::pair<std::vector<int>, std::vector<int>> splitAndParseFile(const std::string &input)
 {
 	std::pair<std::vector<int>, std::vector<int>> lists;
@@ -32,6 +36,11 @@ std::pair<std::vector<int>, std::vector<int>> splitAndParseFile(const std::strin
 	return lists;
 }
 
+/// @brief Calculate the 'distance' between sorted lists. This 'distance' value is calculated
+/// by summing all the values of a[i] multiplied the number of occurances of a[i] in list b
+/// @param a Main vector of values
+/// @param b Vector of values where each value occurs >= 1 times.
+/// @return the 'distance' sum
 int calcDistanceBetweenSortedLists(const std::vector<int> &a, const std::vector<int> &b)
 {
 	// build an hash map for the second list
