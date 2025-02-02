@@ -4,6 +4,10 @@
 #include <regex>
 #include <iterator>
 
+/// @brief Parse a string and extract all the occurances of 'mul(x,y)', where x and y are strings of digits. Multiplies the x and y integer values together
+/// and sums all occurances of the pattern.
+/// @param line a string
+/// @return The sum of the pattern values
 long long findAndSumMul(std::string &line)
 {
 	std::regex mul_regex("mul\\(([0-9]+),([0-9]+)\\)", std::regex_constants::ECMAScript);
