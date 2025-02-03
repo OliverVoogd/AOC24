@@ -10,6 +10,9 @@ using namespace std;
 typedef vector<int> update;
 typedef vector<int> pages;
 
+/// @brief Reads a file into conditional rules and lines of page numbers.
+/// Can determine if the lines of page numbers are ordered correctly based on the conditional rules,
+/// and can also sum all the median values of the correctly ordered lines of numbers.
 class PrintOrdering
 {
 private:
@@ -18,10 +21,18 @@ private:
 	vector<update> all_updates;
 
 public:
+	/// @brief Parse a file into conditional rules and vectors of page numbers
+	/// @param input a file containing the conditional rules first in the form X|Y, then a one line break, then any number of lines
+	/// of comma separated integer values.
 	void parse_conditional_file(const string &input);
 
+	/// @brief Check each line of updates stored in all_updates and then sum the median of the correctly ordered lines
+	/// @return the sum of the medians of the correct update lines.
 	int get_center_sum_from_correct_updates() const;
 
+	/// @brief Checks an single line all_updates[update_idx] for valid ordering.
+	/// @param update_idx The index of the update line to check
+	/// @return True if correctly ordered.
 	bool check_update(int update_idx) const;
 
 	size_t num_updates() const { return all_updates.size(); };
