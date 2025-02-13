@@ -88,12 +88,9 @@ int calc_antinodes_inside_grid(int grid_size, unordered_map<char, vector<Vector2
 	for (auto [key, positions] : antennas) {
 		for (int i = 0; i < positions.size(); i++) {
 			for (int j = i + 1; j < positions.size(); j++) {
-				pair<Vector2, Vector2> antinodes = find_antinodes(positions[i], positions[j]);
-				if (point_inside_grid(antinodes.first, grid_size, grid_size)) {
-					grid[antinodes.first.x][antinodes.first.y] = true;
-				}
-				if (point_inside_grid(antinodes.second, grid_size, grid_size)) {
-					grid[antinodes.second.x][antinodes.second.y] = true;
+				auto antinodes = find_antinodes_inside_grid(positions[i], positions[j], grid_size);
+				for (auto an : antinodes) {
+					grid[an.x][an.y] = true;
 				}
 			}
 		}
