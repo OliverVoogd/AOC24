@@ -27,13 +27,11 @@ typedef struct
     Vec2 vel;
 } Robot;
 
-// v: (2, -3)
-// 0: (2, 4)
-// 1: (4, 1)
-// 2: (6, 5)
-// 3: (8, 2)
-// 4: (10, 6)
-// 5: (1, 3) = ((2,4) + 5 * (2,-3)) mod (11, 7)
+typedef struct
+{
+    vector<Robot> robots;
+    int safety_factor;
+} RobotSpace;
 
 void print_robot(Robot r)
 {
@@ -99,11 +97,13 @@ static int floor_mod(int a, int n)
 {
     return a - (n * floor((float)a / (float)n));
 }
+
 Robot new_moved_robot(const Robot &robot, int secs)
 {
     return {{floor_mod((robot.pos.x + secs * robot.vel.x), WIDTH), floor_mod((robot.pos.y + secs * robot.vel.y), HEIGHT)},
             {robot.vel.x, robot.vel.y}};
 }
+
 vector<Robot> move_robots_by_sec(const vector<Robot> &start, uint secs = 0)
 {
     vector<Robot> end(start.size());
@@ -165,18 +165,34 @@ int main()
     string file("input.txt");
     vector<Robot> robots = parse_robots(file);
 
-    // for_each(robots.begin(), robots.end(), print_robot);
-    // cout << "\n";
+    // Part 1:
+    // robots = move_robots_by_sec(robots, 100);
+    // cout << calculate_safety_factor(robots) << endl;
 
-    // visualise_robots(robots);
+    // Part 2:
+    int secs = 3800;
+    int min_factor = __INT_MAX__;
+    int min_secs = 1;
+    string input;
+    while (input != "q")
+    {
+        for (int i = 0; i < 1000; i++)
+        {
+            auto r = move_robots_by_sec(robots, secs);
+            int factor = calculate_safety_factor(r);
 
-    robots = move_robots_by_sec(robots, 100);
+            if (factor < min_factor)
+            {
+                min_factor = factor;
+                min_secs = secs;
+            }
 
-    cout << calculate_safety_factor(robots);
-    cout << "\n";
+            secs++;
+        }
 
-    // for_each(robots.begin(), robots.end(), print_robot);
-    // visualise_robots(robots);
-
+        cout << "Safety factor: " << min_factor << "secs: " << min_secs << ". Total elapsed = " << secs << endl;
+        visualise_robots(move_robots_by_sec(robots, min_secs));
+        cin >> input;
+    }
     return 0;
 }
