@@ -11,8 +11,8 @@
 
 using namespace std;
 
-#define WIDTH 11 // 101
-#define HEIGHT 7 // 103
+#define WIDTH 101
+#define HEIGHT 103
 // Top left is 0,0
 
 typedef struct
@@ -113,11 +113,51 @@ vector<Robot> move_robots_by_sec(const vector<Robot> &start, uint secs = 0)
     return end;
 }
 
+typedef enum
+{
+    TOP_LEFT,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_RIGHT,
+    NONE
+} Quadrent;
+
+Quadrent robot_quadrent(const Robot &robot)
+{
+    // check for on the midpoints first.
+    if (robot.pos.x == WIDTH / 2 || robot.pos.y == HEIGHT / 2)
+    {
+        return NONE;
+    }
+
+    if (robot.pos.x < WIDTH / 2)
+    {
+        if (robot.pos.y < HEIGHT / 2)
+        {
+            return TOP_LEFT;
+        }
+        return BOTTOM_LEFT;
+    }
+    else
+    {
+        if (robot.pos.y < HEIGHT / 2)
+        {
+            return TOP_RIGHT;
+        }
+        return BOTTOM_RIGHT;
+    }
+}
+
 int calculate_safety_factor(const vector<Robot> &robots)
 {
-    int sf = 0;
+    int quads[5] = {0, 0, 0, 0, 0};
 
-    return sf;
+    for (auto r : robots)
+    {
+        quads[robot_quadrent(r)]++;
+    }
+
+    return quads[TOP_LEFT] * quads[TOP_RIGHT] * quads[BOTTOM_LEFT] * quads[BOTTOM_RIGHT];
 }
 
 int main()
@@ -128,14 +168,15 @@ int main()
     // for_each(robots.begin(), robots.end(), print_robot);
     // cout << "\n";
 
-    visualise_robots(robots);
+    // visualise_robots(robots);
 
     robots = move_robots_by_sec(robots, 100);
 
+    cout << calculate_safety_factor(robots);
     cout << "\n";
 
     // for_each(robots.begin(), robots.end(), print_robot);
-    visualise_robots(robots);
+    // visualise_robots(robots);
 
     return 0;
 }
