@@ -1,11 +1,14 @@
 #include <string>
+#include <iostream>
 #include <sstream>
+#include <fstream>
+#include <functional>
 
 class ScanSequence
 {
 
 private:
-    const std::string seq;
+    std::string seq;
     size_t len;
     size_t cur;
 
@@ -21,6 +24,7 @@ private:
 
 public:
     ScanSequence(std::string str);
+    ScanSequence(std::ifstream &file);
 
     // Scan and produce a string, ending with the 'endChar' delimiter
     std::string scanString(const char &endChar);
@@ -33,7 +37,10 @@ public:
 
     // Consume a given sequence. Returns false if that sequence doesn't exist at the current position.
     // Sets seq.cur past the consumed sequence
+    bool consumeString(const char &string);
     bool consumeString(const std::string &string);
+
+    void applyWithDelim(const char &delim, std::function<void(ScanSequence &)> apply);
 };
 
 bool ScanSequence::isAtEnd()
@@ -48,8 +55,6 @@ char ScanSequence::peek()
 
 bool ScanSequence::consume()
 {
-    if (isAtEnd())
-        return false;
     cur++;
     return true;
 }
@@ -61,6 +66,8 @@ char ScanSequence::pop()
 
 void ScanSequence::advance()
 {
+    if (isAtEnd())
+        return;
     cur++;
 }
 
@@ -73,6 +80,15 @@ ScanSequence::ScanSequence(std::string str) : seq(str)
 {
     cur = 0;
     len = str.size();
+}
+
+ScanSequence::ScanSequence(std::ifstream &file)
+{
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    seq = buffer.str();
+    cur = 0;
+    len = seq.size();
 }
 
 std::string ScanSequence::scanString(const char &endChar)
@@ -91,6 +107,7 @@ void ScanSequence::skipUntilPast(const char &endChar)
     {
         advance();
     }
+    advance(); // step past the endChar
 }
 
 int ScanSequence::scanInt()
@@ -109,6 +126,10 @@ int ScanSequence::scanInt()
     return stoi(ss.str());
 }
 
+bool ScanSequence::consumeString(const char &string)
+{
+    return consumeString(std::string(1, string));
+}
 bool ScanSequence::consumeString(const std::string &string)
 {
     int cur_idx = 0;
@@ -127,4 +148,14 @@ bool ScanSequence::consumeString(const std::string &string)
         cur_idx++;
     }
     return true;
+}
+
+void ScanSequence::applyWithDelim(const char &delim, std::function<void(ScanSequence &)> apply)
+{
+    while (!isAtEnd())
+    {
+        apply(*this);
+        if (!consumeString(delim))
+            return;
+    }
 }
