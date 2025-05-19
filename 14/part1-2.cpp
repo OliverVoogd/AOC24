@@ -7,7 +7,7 @@
 #include <regex>
 #include <cmath>
 
-#include "scanner.h"
+#include "../scanner.h"
 
 using namespace std;
 
