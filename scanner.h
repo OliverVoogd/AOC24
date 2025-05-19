@@ -3,6 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include <functional>
+#include <stdint.h>
 
 class ScanSequence
 {
@@ -34,11 +35,14 @@ public:
 
     // Scan and produce an Int. Ends at any non digit character
     int scanInt();
+    uint8_t scanUInt8();
 
     // Consume a given sequence. Returns false if that sequence doesn't exist at the current position.
     // Sets seq.cur past the consumed sequence
     bool consumeString(const char &string);
     bool consumeString(const std::string &string);
+
+    void consumeWhitespace();
 
     void applyWithDelim(const char &delim, std::function<void(ScanSequence &)> apply);
 };
@@ -110,20 +114,40 @@ void ScanSequence::skipUntilPast(const char &endChar)
     advance(); // step past the endChar
 }
 
+void ScanSequence::consumeWhitespace()
+{
+    while (!isAtEnd() && (peek() == ' ' || peek() == '\n'))
+    {
+        advance();
+    }
+}
+
 int ScanSequence::scanInt()
 {
     std::stringstream ss;
-    if (peek() == '-')
+    consumeWhitespace();
+    if (!isAtEnd() && peek() == '-')
     {
         ss << pop();
     }
 
-    while (isDigit(peek()))
+    while (!isAtEnd() && isDigit(peek()))
     {
         ss << pop();
     }
 
     return stoi(ss.str());
+}
+
+uint8_t ScanSequence::scanUInt8()
+{
+    consumeWhitespace();
+    uint8_t val = 0;
+    while (!isAtEnd() && isDigit(peek()))
+    {
+        val = (val * 10) + (pop() - '0');
+    }
+    return val;
 }
 
 bool ScanSequence::consumeString(const char &string)
