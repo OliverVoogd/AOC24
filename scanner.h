@@ -1,3 +1,6 @@
+#ifndef SCANNER_H
+#define SCANNER_H
+
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -183,3 +186,5 @@ void ScanSequence::applyWithDelim(const char &delim, std::function<void(ScanSequ
             return;
     }
 }
+
+#endif
