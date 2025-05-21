@@ -8,14 +8,14 @@
 
 enum Opcode
 {
-    adv = 0, // division of A / 2^(combo operand) -> A
-    bxl = 1, // bitwise XOR of B and literal operand -> B
-    bst = 2, // modulo 8 of combo operand -> B
-    jnz = 3, // jump by literal operand if A != 0
-    bxc = 4, // bitwise XOR of B and C -> B
-    out = 5, // outputs combo operand
-    bdv = 6, // adv -> B
-    cdv = 7, // adv -> C
+    ADV = 0, // division of A / 2^(combo operand) -> A
+    BXL = 1, // bitwise XOR of B and literal operand -> B
+    BST = 2, // modulo 8 of combo operand -> B
+    JNZ = 3, // jump by literal operand if A != 0
+    BXC = 4, // bitwise XOR of B and C -> B
+    OUT = 5, // outputs combo operand
+    BDV = 6, // adv -> B
+    CDV = 7, // adv -> C
 };
 
 class Interpreter
@@ -40,6 +40,11 @@ private:
     uint8_t pop()
     {
         return opcodes[ip++];
+    }
+
+    Opcode popOpcode()
+    {
+        return (Opcode)pop();
     }
 
 public:
@@ -81,7 +86,7 @@ int Interpreter::calculateComboOperand(uint8_t operand)
     default:
         // reserved
         std::cout << "\t RESERVED OPCODE\n";
-        return;
+        return -1;
     }
 }
 
@@ -89,8 +94,33 @@ void Interpreter::run()
 {
     while (!finished())
     {
-        uint8_t oper = pop();
+        Opcode oper = popOpcode();
+
+        switch (oper)
+        {
+        case ADV:
+            printf("opcode <adv>\n");
+            break;
+        case BXL:
+        case BST:
+        case JNZ:
+        case BXC:
+        case OUT:
+        {
+            uint8_t operand = pop();
+            int combo = calculateComboOperand(operand) % 8;
+            printf("<out> %d\n", combo);
+            break;
+        }
+        case BDV:
+        case CDV:
+        default:
+            printf("Unknown opcode <%d>.\n", oper);
+            break;
+        }
     }
+
+    printf("Finished execution.\n");
 }
 
 int main()
@@ -126,6 +156,6 @@ int main()
     // interpreter.run();
 
     // testing
-    Interpreter interpreter({}, 1, 0, 0);
+    Interpreter interpreter({5, 3}, 1, 0, 0);
     interpreter.run();
 }
