@@ -2,9 +2,13 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cmath>
+#include <sstream>
 #include <stdint.h>
 
 #include "../scanner.h"
+
+// #define DEBUG_PRINT
 
 enum Opcode
 {
@@ -18,12 +22,22 @@ enum Opcode
     CDV = 7, // adv -> C
 };
 
+const char *OpcodeNames[] = {
+    "adv", "bxl", "bst", "jnz", "bxc", "out", "bdv", "cdv"};
+
+typedef struct
+{
+    int A;
+    int B;
+    int C;
+} Registers;
+
 class Interpreter
 {
 private:
     int ip;
 
-    int registers[3]; // [A, B, C]
+    Registers registers; // [A, B, C]
     const std::vector<uint8_t> opcodes;
 
     bool finished()
@@ -42,6 +56,11 @@ private:
         return opcodes[ip++];
     }
 
+    uint8_t peek()
+    {
+        return opcodes[ip];
+    }
+
     Opcode popOpcode()
     {
         return (Opcode)pop();
@@ -50,9 +69,9 @@ private:
 public:
     Interpreter(const std::vector<uint8_t> &codes, int a, int b, int c) : opcodes(codes)
     {
-        registers[0] = a;
-        registers[1] = b;
-        registers[2] = c;
+        registers.A = a;
+        registers.B = b;
+        registers.C = c;
 
         ip = 0;
     }
@@ -75,13 +94,13 @@ int Interpreter::calculateComboOperand(uint8_t operand)
         return (int)operand;
     case 4:
         // register A
-        return registers[0];
+        return registers.A;
     case 5:
         // register B
-        return registers[1];
+        return registers.B;
     case 6:
         // register C
-        return registers[2];
+        return registers.C;
     case 7:
     default:
         // reserved
@@ -90,37 +109,83 @@ int Interpreter::calculateComboOperand(uint8_t operand)
     }
 }
 
+static int calculateDivision(int numerator, int denominator, int base = 2)
+{
+    return numerator / std::pow(2, denominator);
+}
+
 void Interpreter::run()
 {
+    std::stringstream ss;
     while (!finished())
     {
         Opcode oper = popOpcode();
+#ifdef DEBUG_PRINT
+        printf("\t<registers> A=%d, B=%d, C=%d\n", registers.A, registers.B, registers.C);
+        printf("<opcode> %s[%d] <operand?> %d\n", OpcodeNames[oper], oper, peek());
 
+#endif
         switch (oper)
         {
         case ADV:
-            printf("opcode <adv>\n");
+        {
+            int div = calculateDivision(registers.A, calculateComboOperand(pop()));
+            registers.A = div;
             break;
+        }
         case BXL:
+            registers.B = registers.B ^ pop();
+            break;
         case BST:
+        {
+            uint8_t val = pop();
+            int combo = calculateComboOperand(val);
+#ifdef DEBUG_PRINT
+            printf("\t\t%d\n", combo);
+#endif
+            registers.B = combo % 8;
+            break;
+        }
         case JNZ:
+        {
+            uint8_t jump_ip = pop();
+            if (registers.A != 0)
+            {
+                ip = jump_ip;
+            }
+            break;
+        }
         case BXC:
+            registers.B = registers.B ^ registers.C;
+            pop();
+            break;
         case OUT:
         {
             uint8_t operand = pop();
             int combo = calculateComboOperand(operand) % 8;
+#ifdef DEBUG_PRINT
             printf("<out> %d\n", combo);
+#endif
+            ss << ',' << combo;
             break;
         }
         case BDV:
+            registers.B = calculateDivision(registers.A, calculateComboOperand(pop()));
+            break;
         case CDV:
+            registers.C = calculateDivision(registers.A, calculateComboOperand(pop()));
+            break;
         default:
             printf("Unknown opcode <%d>.\n", oper);
             break;
         }
     }
 
+#ifdef DEBUG_PRINT
+    printf("Registers: [%d, %d, %d]\n", registers.A, registers.B, registers.C);
     printf("Finished execution.\n");
+#endif
+    std::cout << ss.str().c_str() + 1 << std::endl;
 }
 
 int main()
@@ -130,32 +195,35 @@ int main()
     ScanSequence ss(file);
     file.close();
 
-    // // Scan initial values
-    // ss.consumeString("Register A: ");
-    // int reg_a = ss.scanInt();
-    // ss.consumeString("\nRegister B: ");
-    // int reg_b = ss.scanInt();
-    // ss.consumeString("\nRegister C: ");
-    // int reg_c = ss.scanInt();
+    // Scan initial values
+    ss.consumeString("Register A: ");
+    int reg_a = ss.scanInt();
+    ss.consumeString("\nRegister B: ");
+    int reg_b = ss.scanInt();
+    ss.consumeString("\nRegister C: ");
+    int reg_c = ss.scanInt();
 
-    // ss.consumeString("\n\nProgram: ");
-    // std::vector<uint8_t> opcodes;
-    // ss.applyWithDelim(',', [&opcodes](ScanSequence &ss)
-    //                   { opcodes.push_back(ss.scanUInt8()); });
-
-    // // printf("Register A: %d\nRegister B: %d\nRegister C: %d\n", reg_a, reg_b, reg_c);
-    // // std::cout << "Program: ";
-    // // for (auto x : opcodes)
-    // // {
-    // //     std::cout << (int)x << ",";
-    // // }
-    // // std::cout << "\n";
-
-    // // Start the actual program
-    // Interpreter interpreter(opcodes, reg_a, reg_b, reg_c);
-    // interpreter.run();
-
-    // testing
-    Interpreter interpreter({5, 3}, 1, 0, 0);
+    ss.consumeString("\n\nProgram: ");
+    std::vector<uint8_t> opcodes;
+    ss.applyWithDelim(',', [&opcodes](ScanSequence &ss)
+                      { opcodes.push_back(ss.scanUInt8()); });
+#ifdef DEBUG_PRINT
+    printf("Register A: %d\nRegister B: %d\nRegister C: %d\n", reg_a, reg_b, reg_c);
+    std::cout << "Program: ";
+    for (auto x : opcodes)
+    {
+        std::cout << (int)x << ",";
+    }
+    std::cout << "\n";
+#endif
+    // Start the actual program
+    Interpreter interpreter(opcodes, reg_a, reg_b, reg_c);
     interpreter.run();
+
+    // // testing
+    // int a = 0;
+    // int b = 0;
+    // int c = 9;
+    // Interpreter interpreter({2, 6, 5, 5}, a, b, c);
+    // interpreter.run();
 }
