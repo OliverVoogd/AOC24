@@ -5,6 +5,7 @@
 #include <cmath>
 #include <sstream>
 #include <stdint.h>
+#include <numeric>
 
 #include "../scanner.h"
 
@@ -77,7 +78,7 @@ public:
     }
 
     // Run the interpreter, starting from ip = 0 and executing the program until ip >= opcodes.size();
-    void run();
+    std::vector<int> run();
 };
 
 int Interpreter::calculateComboOperand(uint8_t operand)
@@ -114,9 +115,9 @@ static int calculateDivision(int numerator, int denominator, int base = 2)
     return numerator / std::pow(2, denominator);
 }
 
-void Interpreter::run()
+std::vector<int> Interpreter::run()
 {
-    std::stringstream ss;
+    std::vector<int> outputs;
     while (!finished())
     {
         Opcode oper = popOpcode();
@@ -166,7 +167,7 @@ void Interpreter::run()
 #ifdef DEBUG_PRINT
             printf("<out> %d\n", combo);
 #endif
-            ss << ',' << combo;
+            outputs.push_back(combo);
             break;
         }
         case BDV:
@@ -185,45 +186,109 @@ void Interpreter::run()
     printf("Registers: [%d, %d, %d]\n", registers.A, registers.B, registers.C);
     printf("Finished execution.\n");
 #endif
-    std::cout << ss.str().c_str() + 1 << std::endl;
+    return outputs;
 }
 
-int main()
+typedef struct
 {
-    std::string input("input.txt");
+    int A;
+    int B;
+    int C;
+    std::vector<uint8_t> Opcodes;
+} ProgramInput;
+
+ProgramInput build_input(std::string input)
+{
+    ProgramInput res;
     std::ifstream file(input);
     ScanSequence ss(file);
     file.close();
 
     // Scan initial values
     ss.consumeString("Register A: ");
-    int reg_a = ss.scanInt();
+    res.A = ss.scanInt();
     ss.consumeString("\nRegister B: ");
-    int reg_b = ss.scanInt();
+    res.B = ss.scanInt();
     ss.consumeString("\nRegister C: ");
-    int reg_c = ss.scanInt();
+    res.C = ss.scanInt();
 
     ss.consumeString("\n\nProgram: ");
-    std::vector<uint8_t> opcodes;
-    ss.applyWithDelim(',', [&opcodes](ScanSequence &ss)
-                      { opcodes.push_back(ss.scanUInt8()); });
+    ss.applyWithDelim(',', [&res](ScanSequence &ss)
+                      { res.Opcodes.push_back(ss.scanUInt8()); });
+
+    return res;
+}
+
+void part1()
+{
+    std::string input("input.txt");
+    ProgramInput pi = build_input(input);
 #ifdef DEBUG_PRINT
-    printf("Register A: %d\nRegister B: %d\nRegister C: %d\n", reg_a, reg_b, reg_c);
+    printf("Register A: %d\nRegister B: %d\nRegister C: %d\n", pi.A, pi.B, pi - C);
     std::cout << "Program: ";
-    for (auto x : opcodes)
+    for (auto x : pi.Opcodes)
     {
         std::cout << (int)x << ",";
     }
     std::cout << "\n";
 #endif
     // Start the actual program
-    Interpreter interpreter(opcodes, reg_a, reg_b, reg_c);
-    interpreter.run();
+    Interpreter interpreter(pi.Opcodes, pi.A, pi.B, pi.C);
+    auto outputs = interpreter.run();
+    std::cout << outputs[0];
+    for (int i = 1; i < outputs.size(); i++)
+    {
+        std::cout << "," << outputs[i];
+    }
+    std::cout << "\n";
+}
 
-    // // testing
-    // int a = 0;
-    // int b = 0;
-    // int c = 9;
-    // Interpreter interpreter({2, 6, 5, 5}, a, b, c);
-    // interpreter.run();
+static inline bool equal_vec(const std::vector<int> &a, const std::vector<int> &b)
+{
+    if (a.size() != b.size())
+        return false;
+    for (int i = 0; i < a.size(); i++)
+    {
+        if (a[i] != b[i])
+            return false;
+    }
+    return true;
+}
+
+void part2()
+{
+    // Setup the inputs and the goal
+    ProgramInput input = build_input("input.txt");
+    std::vector<int> goal;
+    for (auto x : input.Opcodes)
+    {
+        goal.push_back((int)x);
+        std::cout << "," << (int)x;
+    }
+    std::cout << std::endl;
+
+    int a = 0;
+    while (true)
+    {
+        Interpreter inter(input.Opcodes, a, input.B, input.C);
+        auto res = inter.run();
+        if (equal_vec(goal, res))
+        {
+            std::cout << "Found ! " << a << std::endl;
+            break;
+        }
+
+        if (a % 1000000 == 0)
+        {
+            std::cout << "\t\tA = " << a << std::endl;
+        }
+        a++;
+    }
+}
+
+int main()
+{
+
+    // part1();
+    part2();
 }
