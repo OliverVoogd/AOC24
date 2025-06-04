@@ -30,6 +30,10 @@ public:
     ScanSequence(std::string str);
     ScanSequence(std::ifstream &file);
 
+    char Peek()
+    {
+        return peek();
+    }
     // Scan and produce a string, ending with the 'endChar' delimiter
     std::string scanString(const char &endChar);
 
