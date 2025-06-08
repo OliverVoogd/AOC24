@@ -187,6 +187,21 @@ public:
         }
     }
 
+    int sumCoords()
+    {
+        int sum = 0;
+        for (int y = 0; y < grid.size(); y++)
+        {
+            for (int x = 0; x < grid[y].size(); x++)
+            {
+                if (grid[y][x] == BOX)
+                {
+                    sum += (100 * y) + x;
+                }
+            }
+        }
+        return sum;
+    }
     void run()
     {
         for (auto move : moves)
@@ -229,4 +244,6 @@ int main()
 
     std::cout << "\nFinished movements: \n";
     w.printGrid(false);
+
+    std::cout << "\nSum = " << w.sumCoords() << std::endl;
 }
