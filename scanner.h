@@ -16,9 +16,7 @@ private:
     size_t len;
     size_t cur;
 
-    bool isAtEnd();
-
-    char peek();
+        char peek();
 
     bool consume();
 
@@ -30,7 +28,9 @@ public:
     ScanSequence(std::string str);
     ScanSequence(std::ifstream &file);
 
-    char Peek()
+    bool isAtEnd();
+
+    char peekAtChar()
     {
         return peek();
     }
@@ -43,6 +43,7 @@ public:
     // Scan and produce an Int. Ends at any non digit character
     int scanInt();
     uint8_t scanUInt8();
+    char scanChar();
 
     // Consume a given sequence. Returns false if that sequence doesn't exist at the current position.
     // Sets seq.cur past the consumed sequence
@@ -155,6 +156,11 @@ uint8_t ScanSequence::scanUInt8()
         val = (val * 10) + (pop() - '0');
     }
     return val;
+}
+
+char ScanSequence::scanChar()
+{
+    return pop();
 }
 
 bool ScanSequence::consumeString(const char &string)
