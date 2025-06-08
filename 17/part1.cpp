@@ -9,7 +9,7 @@
 
 #include "../scanner.h"
 
-// #define DEBUG_PRINT
+#define DEBUG_PRINT
 
 enum Opcode
 {
@@ -224,7 +224,7 @@ void part1()
     std::string input("input.txt");
     ProgramInput pi = build_input(input);
 #ifdef DEBUG_PRINT
-    printf("Register A: %d\nRegister B: %d\nRegister C: %d\n", pi.A, pi.B, pi - C);
+    printf("Register A: %d\nRegister B: %d\nRegister C: %d\n", pi.A, pi.B, pi.C);
     std::cout << "Program: ";
     for (auto x : pi.Opcodes)
     {
@@ -289,6 +289,6 @@ void part2()
 int main()
 {
 
-    // part1();
-    part2();
+    part1();
+    // part2();
 }
