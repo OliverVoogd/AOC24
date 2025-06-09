@@ -7,33 +7,51 @@
 
 using namespace std;
 
+enum Direction
+{
+    NORTH = 0,
+    EAST,
+    SOUTH,
+    WEST
+};
+
+char directionSymbols[] = {'^', '>', 'v', '<'};
+
+enum Cell
+{
+    END,
+    EMPTY,
+    EXPLORED,
+    WALL
+};
+
+struct Reindeer
+{
+    int x;
+    int y;
+    Direction dir;
+    int score;
+    vector<Reindeer> moves;
+
+    Reindeer()
+    {
+        x = 0;
+        y = 0;
+        dir = NORTH;
+        score = 0;
+        moves = {};
+    }
+
+    Reindeer(int x, int y, Direction dir, int score, const Reindeer &prev) : x(x), y(y), dir(dir), score(score)
+    {
+        moves = vector<Reindeer>(prev.moves);
+        moves.push_back(prev);
+    }
+};
+
 class Maze
 {
 private:
-    enum Direction
-    {
-        NORTH = 0,
-        EAST,
-        SOUTH,
-        WEST
-    };
-
-    enum Cell
-    {
-        END,
-        EMPTY,
-        EXPLORED,
-        WALL
-    };
-
-    struct Reindeer
-    {
-        int x;
-        int y;
-        Direction dir;
-        int score;
-    };
-
     vector<vector<Cell>> maze;
 
     Reindeer start;
@@ -47,57 +65,58 @@ private:
         return maze[y][x];
     }
 
+    void printReindeer(const Reindeer &r)
+    {
+        cout << "\tr={" << r.x << ", " << r.y << ", " << directionSymbols[r.dir] << ", " << r.score << "}\n";
+    }
+
     Reindeer nextInDir(const Reindeer &cur)
     {
         switch (cur.dir)
         {
         case NORTH:
-            return {cur.x, cur.y - 1, cur.dir, cur.score + 1};
+            return Reindeer(cur.x, cur.y - 1, cur.dir, cur.score + 1, cur);
         case EAST:
-            return {cur.x + 1, cur.y, cur.dir, cur.score + 1};
+            return Reindeer(cur.x + 1, cur.y, cur.dir, cur.score + 1, cur);
         case SOUTH:
-            return {cur.x, cur.y + 1, cur.dir, cur.score + 1};
+            return Reindeer(cur.x, cur.y + 1, cur.dir, cur.score + 1, cur);
         case WEST:
         default:
-            return {cur.x - 1, cur.y, cur.dir, cur.score + 1};
+            return Reindeer(cur.x - 1, cur.y, cur.dir, cur.score + 1, cur);
         }
+    }
+    Direction getNextDir(Direction dir, bool left)
+    {
+        int d = (int)dir;
+        // if left = true, rotate counterclockwise
+        if (left)
+            d = 4 + d - 1;
+        else
+            d = 4 + d + 1;
+        return (Direction)(d % 4);
     }
     Reindeer nextRotateCounterClockwise(const Reindeer &cur)
     {
-        switch (cur.dir)
-        {
-        case NORTH:
-            return {cur.x, cur.y, WEST, cur.score + 1000};
-        case EAST:
-            return {cur.x, cur.y, NORTH, cur.score + 1000};
-        case SOUTH:
-            return {cur.x, cur.y, EAST, cur.score + 1000};
-        case WEST:
-        default:
-            return {cur.x, cur.y, SOUTH, cur.score + 1000};
-        }
+        return Reindeer(cur.x, cur.y, getNextDir(cur.dir, true), cur.score + 1000, cur);
     }
     Reindeer nextRotateClockwise(const Reindeer &cur)
     {
-        switch (cur.dir)
-        {
-        case NORTH:
-            return {cur.x, cur.y, EAST, cur.score + 1000};
-        case EAST:
-            return {cur.x, cur.y, SOUTH, cur.score + 1000};
-        case SOUTH:
-            return {cur.x, cur.y, WEST, cur.score + 1000};
-        case WEST:
-        default:
-            return {cur.x, cur.y, NORTH, cur.score + 1000};
-        }
+        return Reindeer(cur.x, cur.y, getNextDir(cur.dir, false), cur.score + 1000, cur);
     }
     vector<Reindeer> getAllRotations(const Reindeer &cur)
     {
         vector<Reindeer> rot;
-        rot.push_back(nextRotateClockwise(cur));
-        rot.push_back(nextRotateClockwise(rot.back()));
-        rot.push_back(nextRotateCounterClockwise(cur));
+        Reindeer r = nextRotateClockwise(cur);
+        // printReindeer(r);
+        Reindeer l = nextRotateCounterClockwise(cur);
+        // printReindeer(l);
+
+        // Only accept the moves if there's a free cell to move into
+        if (at(nextInDir(r)) <= EMPTY)
+            rot.push_back(r);
+        if (at(nextInDir(l)) <= EMPTY)
+            rot.push_back(l);
+
         return rot;
     }
     // When we move forwards, also get all of the rotations we could be in at that new location
@@ -137,7 +156,7 @@ public:
                     break;
                 case 'S':
                     maze.back().push_back(EXPLORED);
-                    start = {x, y, EAST, 0};
+                    start = {x, y, EAST, 0, {}};
                     break;
                 case 'E':
                     maze.back().push_back(END);
@@ -154,7 +173,7 @@ public:
         }
     }
 
-    void printMaze(const Reindeer &cur = {0, 0, NORTH, 0})
+    void printMaze(const Reindeer &cur = {0, 0, NORTH, 0, {}})
     {
         for (int y = 0; y < maze.size(); y++)
         {
@@ -162,7 +181,7 @@ public:
             {
                 if (cur.x == x && cur.y == y)
                 {
-                    cout << 'R';
+                    cout << directionSymbols[cur.dir];
                     continue;
                 }
                 switch (at(x, y))
@@ -206,9 +225,9 @@ public:
             boundary.pop();
 
             // Print grid
-            // cout << "\nQueue= " << boundary.size();
-            // printf(". Checking {%d, %d, %d, %d}\n", cur.x, cur.y, cur.dir, cur.score);
-            // printMaze(cur);
+            cout << "\nQueue= " << boundary.size();
+            printf(". Checking {%d, %d, %d, %d}\n", cur.x, cur.y, cur.dir, cur.score);
+            printMaze(cur);
             // Check for the first finding of the end cell
             if (at(cur) == END)
                 return cur.score;
@@ -220,12 +239,12 @@ public:
                 boundary.push(next);
             }
 
-            // std::string s;
-            // cin >> s;
-            // if (s == "q")
-            // {
-            //     break;
-            // }
+            std::string s;
+            cin >> s;
+            if (s == "q")
+            {
+                break;
+            }
         }
 
         return -1;
