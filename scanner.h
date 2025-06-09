@@ -16,7 +16,7 @@ private:
     size_t len;
     size_t cur;
 
-        char peek();
+    char peek();
 
     bool consume();
 
@@ -26,6 +26,7 @@ private:
 
 public:
     ScanSequence(std::string str);
+    ScanSequence(std::string file, bool openFile);
     ScanSequence(std::ifstream &file);
 
     bool isAtEnd();
@@ -92,6 +93,25 @@ ScanSequence::ScanSequence(std::string str) : seq(str)
 {
     cur = 0;
     len = str.size();
+}
+
+ScanSequence::ScanSequence(std::string file, bool openFile)
+{
+    if (!openFile)
+    {
+        seq = file;
+        cur = 0;
+        len = seq.size();
+    }
+    else
+    {
+        std::ifstream i(file);
+        std::stringstream buffer;
+        buffer << i.rdbuf();
+        seq = buffer.str();
+        cur = 0;
+        len = seq.size();
+    }
 }
 
 ScanSequence::ScanSequence(std::ifstream &file)
