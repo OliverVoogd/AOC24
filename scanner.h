@@ -111,6 +111,7 @@ ScanSequence::ScanSequence(std::string file, bool openFile)
         seq = buffer.str();
         cur = 0;
         len = seq.size();
+        i.close();
     }
 }
 
