@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include <queue>
+#include <stack>
 
 using namespace std;
 
@@ -53,8 +54,10 @@ class Maze
 {
 private:
     vector<vector<Cell>> maze;
-
     Reindeer start;
+
+    stack<Reindeer> stackDFS;
+    vector<vector<Reindeer>> validPaths;
 
     Cell &at(const Reindeer &pos)
     {
@@ -95,20 +98,14 @@ private:
             d = 4 + d + 1;
         return (Direction)(d % 4);
     }
-    Reindeer nextRotateCounterClockwise(const Reindeer &cur)
-    {
-        return Reindeer(cur.x, cur.y, getNextDir(cur.dir, true), cur.score + 1000, cur);
-    }
-    Reindeer nextRotateClockwise(const Reindeer &cur)
-    {
-        return Reindeer(cur.x, cur.y, getNextDir(cur.dir, false), cur.score + 1000, cur);
-    }
+
     vector<Reindeer> getAllRotations(const Reindeer &cur)
     {
         vector<Reindeer> rot;
-        Reindeer r = nextRotateClockwise(cur);
-        // printReindeer(r);
-        Reindeer l = nextRotateCounterClockwise(cur);
+        // Counterclockwise rotation
+        Reindeer r(cur.x, cur.y, getNextDir(cur.dir, false), cur.score + 1000, cur);
+        // Clockwise rotation
+        Reindeer l(cur.x, cur.y, getNextDir(cur.dir, true), cur.score + 1000, cur);
         // printReindeer(l);
 
         // Only accept the moves if there's a free cell to move into
@@ -249,6 +246,69 @@ public:
 
         return -1;
     }
+
+    void storeValidPathStack()
+    {
+    }
+    void DFSAllPaths()
+    {
+        stackDFS = {};
+        validPaths.clear();
+        auto adj = getAllRotations(start);
+        adj.push_back(start);
+        for (auto a : adj)
+        {
+            stackDFS.push(a);
+            DFSAllPathsAux(a);
+            stackDFS.pop();
+        }
+
+        // validPaths should be complete
+        std::cout << validPaths.size() << std::endl;
+    }
+
+    // This function recursively performs a DFS through the maze.
+    // Each time it finds the END, it adds a 'path' vector to validPaths.
+    //
+    bool DFSAllPathsAux(Reindeer pos)
+    {
+        printMaze(pos);
+        std::string s;
+        std::cin >> s;
+        if (s == "q")
+        {
+            quick_exit(0);
+        }
+        // This is too slow, we should figure out an inline method for finding the adjacent
+        // really, from every cell we only need to check 3 cells
+        //      ^
+        //    < P >
+        auto adj = getValidAdjacent(pos);
+
+        for (auto next : adj)
+        {
+            // When we find the END cell, append it to the completed path and terminate
+            // as if we've found the END at this depth, there won't be a better way to get there if
+            // we move into a different cell from here
+            if (at(next) == END)
+            {
+                stackDFS.push(next);
+                storeValidPathStack();
+                stackDFS.pop();
+                return true;
+            }
+
+            // Not the end, and we know next is not explored, then explore it and continue down
+            at(next) = EXPLORED;
+            stackDFS.push(next);
+            DFSAllPathsAux(next);
+            // After we've explore all routes from `next`, restore the maze and continue from the next adjacent cell.
+            stackDFS.pop();
+            at(next) = EMPTY;
+        }
+
+        return false;
+    }
 };
 
 int main()
@@ -256,5 +316,5 @@ int main()
     Maze m("input.txt");
     // m.printMaze();
 
-    cout << m.findShortestPath() << endl;
+    m.DFSAllPaths();
 }
