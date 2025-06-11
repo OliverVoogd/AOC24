@@ -32,7 +32,6 @@ struct Reindeer
     int y;
     Direction dir;
     int score;
-    vector<Reindeer> moves;
 
     Reindeer()
     {
@@ -40,13 +39,10 @@ struct Reindeer
         y = 0;
         dir = NORTH;
         score = 0;
-        moves = {};
     }
 
     Reindeer(int x, int y, Direction dir, int score, const Reindeer &prev) : x(x), y(y), dir(dir), score(score)
     {
-        moves = vector<Reindeer>(prev.moves);
-        moves.push_back(prev);
     }
 };
 
@@ -73,7 +69,7 @@ private:
         cout << "\tr={" << r.x << ", " << r.y << ", " << directionSymbols[r.dir] << ", " << r.score << "}\n";
     }
 
-    Reindeer nextInDir(const Reindeer &cur)
+    static inline Reindeer nextInDir(const Reindeer &cur)
     {
         switch (cur.dir)
         {
@@ -88,7 +84,7 @@ private:
             return Reindeer(cur.x - 1, cur.y, cur.dir, cur.score + 1, cur);
         }
     }
-    Direction getNextDir(Direction dir, bool left)
+    static inline Direction getNextDir(Direction dir, bool left)
     {
         int d = (int)dir;
         // if left = true, rotate counterclockwise
@@ -99,23 +95,16 @@ private:
         return (Direction)(d % 4);
     }
 
-    vector<Reindeer> getAllRotations(const Reindeer &cur)
+    static inline Reindeer rotate(const Reindeer &cur, bool left)
     {
-        vector<Reindeer> rot;
-        // Counterclockwise rotation
-        Reindeer r(cur.x, cur.y, getNextDir(cur.dir, false), cur.score + 1000, cur);
-        // Clockwise rotation
-        Reindeer l(cur.x, cur.y, getNextDir(cur.dir, true), cur.score + 1000, cur);
-        // printReindeer(l);
-
-        // Only accept the moves if there's a free cell to move into
-        if (at(nextInDir(r)) <= EMPTY)
-            rot.push_back(r);
-        if (at(nextInDir(l)) <= EMPTY)
-            rot.push_back(l);
-
-        return rot;
+        return {cur.x, cur.y, getNextDir(cur.dir, left), cur.score + 1000, cur};
     }
+    inline Reindeer rotatedAndForward(const Reindeer &cur, bool left) const
+    {
+        Reindeer rotated = rotate(cur, left);
+        return nextInDir(rotated);
+    }
+
     // When we move forwards, also get all of the rotations we could be in at that new location
     // Thus avoiding infinite rotating in a valid cell
     vector<Reindeer> getValidAdjacent(const Reindeer &cur)
@@ -125,11 +114,16 @@ private:
         if (at(forward) <= EMPTY)
         {
             adj.push_back(forward);
-            for (auto r : getAllRotations(forward))
-            {
-                adj.push_back(r);
-            }
         }
+        // Counterclockwise rotation
+        Reindeer rNext = rotatedAndForward(cur, false);
+        // Clockwise rotation
+        Reindeer lNext = rotatedAndForward(cur, true);
+        // Only accept the moves if there's a free cell to move into
+        if (at(rNext) <= EMPTY)
+            adj.push_back(rNext);
+        if (at(lNext) <= EMPTY)
+            adj.push_back(lNext);
 
         return adj;
     }
@@ -205,63 +199,58 @@ public:
         }
     }
 
-    int findShortestPath()
-    {
-        auto customReindeerLess = [](const Reindeer &L, const Reindeer &R)
-        { return L.score > R.score; };
-        priority_queue<Reindeer, vector<Reindeer>, decltype(customReindeerLess)> boundary(customReindeerLess);
-
-        boundary.push(start);
-        for (auto r : getAllRotations(start))
-        {
-            boundary.push(r);
-        }
-        while (boundary.size() > 0)
-        {
-            Reindeer cur = boundary.top();
-            boundary.pop();
-
-            // Print grid
-            cout << "\nQueue= " << boundary.size();
-            printf(". Checking {%d, %d, %d, %d}\n", cur.x, cur.y, cur.dir, cur.score);
-            printMaze(cur);
-            // Check for the first finding of the end cell
-            if (at(cur) == END)
-                return cur.score;
-
-            for (auto next : getValidAdjacent(cur))
-            {
-                if (at(next) != END)
-                    at(next) = EXPLORED;
-                boundary.push(next);
-            }
-
-            std::string s;
-            cin >> s;
-            if (s == "q")
-            {
-                break;
-            }
-        }
-
-        return -1;
-    }
+    // int findShortestPath()
+    // {
+    //     auto customReindeerLess = [](const Reindeer &L, const Reindeer &R)
+    //     { return L.score > R.score; };
+    //     priority_queue<Reindeer, vector<Reindeer>, decltype(customReindeerLess)> boundary(customReindeerLess);
+    //
+    //     boundary.push(start);
+    //     for (auto r : getAllRotations(start))
+    //     {
+    //         boundary.push(r);
+    //     }
+    //     while (boundary.size() > 0)
+    //     {
+    //         Reindeer cur = boundary.top();
+    //         boundary.pop();
+    //
+    //         // Print grid
+    //         cout << "\nQueue= " << boundary.size();
+    //         printf(". Checking {%d, %d, %d, %d}\n", cur.x, cur.y, cur.dir, cur.score);
+    //         printMaze(cur);
+    //         // Check for the first finding of the end cell
+    //         if (at(cur) == END)
+    //             return cur.score;
+    //
+    //         for (auto next : getValidAdjacent(cur))
+    //         {
+    //             if (at(next) != END)
+    //                 at(next) = EXPLORED;
+    //             boundary.push(next);
+    //         }
+    //
+    //         std::string s;
+    //         cin >> s;
+    //         if (s == "q")
+    //         {
+    //             break;
+    //         }
+    //     }
+    //
+    //     return -1;
+    // }
 
     void storeValidPathStack()
     {
+        printf("\tStoring (not yet) a stack of size %lu and with score %d\n", stackDFS.size(), stackDFS.top().score);
     }
     void DFSAllPaths()
     {
         stackDFS = {};
         validPaths.clear();
-        auto adj = getAllRotations(start);
-        adj.push_back(start);
-        for (auto a : adj)
-        {
-            stackDFS.push(a);
-            DFSAllPathsAux(a);
-            stackDFS.pop();
-        }
+
+        DFSAllPathsAux(start);
 
         // validPaths should be complete
         std::cout << validPaths.size() << std::endl;
@@ -270,21 +259,27 @@ public:
     // This function recursively performs a DFS through the maze.
     // Each time it finds the END, it adds a 'path' vector to validPaths.
     //
-    bool DFSAllPathsAux(Reindeer pos)
+    void DFSAllPathsAux(Reindeer pos)
     {
-        printMaze(pos);
-        std::string s;
-        std::cin >> s;
-        if (s == "q")
-        {
-            quick_exit(0);
-        }
-        // This is too slow, we should figure out an inline method for finding the adjacent
-        // really, from every cell we only need to check 3 cells
-        //      ^
-        //    < P >
-        auto adj = getValidAdjacent(pos);
+        // let's do all the update stuff whenever we explore a cell
+        // explore the cell we're searching
+        auto temp = at(pos);
+        at(pos) = EXPLORED;
+        // then add this cell to the stack
+        stackDFS.push(pos);
 
+        // Now that we've officially explored this cell, we can recurse adjacent cells
+        // printMaze(pos);
+        // printf("Called DFSAux at {%d, %d}\n", pos.x, pos.y);
+        // std::string s;
+        // std::cin >> s;
+        // if (s == "q")
+        // {
+        //     quick_exit(0);
+        // }
+
+        // adj is a vector of <= EMPTY cells
+        auto adj = getValidAdjacent(pos);
         for (auto next : adj)
         {
             // When we find the END cell, append it to the completed path and terminate
@@ -295,19 +290,20 @@ public:
                 stackDFS.push(next);
                 storeValidPathStack();
                 stackDFS.pop();
-                return true;
+                break;
             }
 
-            // Not the end, and we know next is not explored, then explore it and continue down
-            at(next) = EXPLORED;
-            stackDFS.push(next);
+            // Not the end, and we know next is not explored, continue downwards
+            // printf("\tRecursing into DFSAux at {%d, %d}\n", next.x, next.y);
             DFSAllPathsAux(next);
-            // After we've explore all routes from `next`, restore the maze and continue from the next adjacent cell.
-            stackDFS.pop();
-            at(next) = EMPTY;
+            // DFSAllPathsAux handles resetting cells once it's finished
         }
 
-        return false;
+        // printf("Resetting cell {%d, %d}\n", pos.x, pos.y);
+        // before we leave this cell (to backtrack up a level), unexplore it
+        at(pos) = temp;
+        // and pop from the stack
+        stackDFS.pop();
     }
 };
 
