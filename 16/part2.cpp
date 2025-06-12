@@ -4,9 +4,10 @@
 #include <fstream>
 #include <vector>
 #include <queue>
+#include <unordered_set>
 #include <stack>
 
-using namespace std;
+#define SHORTEST_KNOWN_PATH 143580
 
 enum Direction
 {
@@ -49,11 +50,11 @@ struct Reindeer
 class Maze
 {
 private:
-    vector<vector<Cell>> maze;
+    std::vector<std::vector<Cell>> maze;
     Reindeer start;
 
-    stack<Reindeer> stackDFS;
-    vector<vector<Reindeer>> validPaths;
+    std::stack<Reindeer> stackDFS;
+    std::vector<std::vector<Reindeer>> validPaths;
     size_t currentShortestPathScore = SIZE_MAX;
 
     Cell &at(const Reindeer &pos)
@@ -67,7 +68,7 @@ private:
 
     void printReindeer(const Reindeer &r)
     {
-        cout << "\tr={" << r.x << ", " << r.y << ", " << directionSymbols[r.dir] << ", " << r.score << "}\n";
+        std::cout << "\tr={" << r.x << ", " << r.y << ", " << directionSymbols[r.dir] << ", " << r.score << "}\n";
     }
 
     static inline Reindeer nextInDir(const Reindeer &cur)
@@ -108,9 +109,9 @@ private:
 
     // When we move forwards, also get all of the rotations we could be in at that new location
     // Thus avoiding infinite rotating in a valid cell
-    vector<Reindeer> getValidAdjacent(const Reindeer &cur)
+    std::vector<Reindeer> getValidAdjacent(const Reindeer &cur)
     {
-        vector<Reindeer> adj;
+        std::vector<Reindeer> adj;
         Reindeer forward = nextInDir(cur);
         if (at(forward) <= EMPTY)
         {
@@ -173,30 +174,30 @@ public:
             {
                 if (cur.x == x && cur.y == y)
                 {
-                    cout << directionSymbols[cur.dir];
+                    std::cout << directionSymbols[cur.dir];
                     continue;
                 }
                 switch (at(x, y))
                 {
                 case EMPTY:
-                    cout << '.';
+                    std::cout << '.';
                     break;
                 case WALL:
-                    cout << '#';
+                    std::cout << '#';
                     break;
                 case EXPLORED:
                     if (x == start.x && y == start.y)
-                        cout << 'S';
+                        std::cout << 'S';
                     else
-                        cout << '*';
+                        std::cout << '*';
                     break;
                 case END:
                 default:
-                    cout << 'E';
+                    std::cout << 'E';
                     break;
                 }
             }
-            cout << '\n';
+            std::cout << '\n';
         }
     }
 
@@ -271,7 +272,7 @@ public:
         if (stackDFS.top().score > currentShortestPathScore)
             return;
 
-        printf("\tStoring (not yet) a stack of size %lu and with score %d\n", stackDFS.size(), stackDFS.top().score);
+        printf("\tStoring a stack of size %lu and with score %d\n", stackDFS.size(), stackDFS.top().score);
         // If we've beaten our previous best, we don't care about all of the other stored 'best' paths
         // Scrap them, and store this one.
         if (stackDFS.top().score < currentShortestPathScore)
@@ -286,16 +287,35 @@ public:
         addToValidPaths();
     }
 
+    int findUniqueCellsInValidPaths()
+    {
+        auto reindeerHash = [](const Reindeer &r)
+        { return r.x * 10000 + r.y; };
+        auto reindeerComp = [](const Reindeer &l, const Reindeer &r)
+        { return (l.x == r.x) && (l.y == r.y); };
+
+        std::unordered_set<Reindeer, decltype(reindeerHash), decltype(reindeerComp)> cells(50, reindeerHash, reindeerComp);
+        for (auto path : validPaths)
+        {
+            for (auto cell : path)
+            {
+                cells.insert(cell);
+            }
+        }
+
+        return cells.size();
+    }
+
     void DFSAllPaths()
     {
         stackDFS = {};
-        currentShortestPathScore = SIZE_MAX;
+        currentShortestPathScore = SHORTEST_KNOWN_PATH;
         validPaths.clear();
 
         DFSAllPathsAux(start);
 
         // validPaths should be complete
-        std::cout << "We have " << validPaths.size() << " with a score of " << currentShortestPathScore << std::endl;
+        std::cout << "We have " << validPaths.size() << " paths with a score of " << currentShortestPathScore << std::endl;
     }
 
     // This function recursively performs a DFS through the maze.
@@ -335,8 +355,13 @@ public:
                 break;
             }
 
+            // break our search if we're already doing worse than the current shortest
+            if (next.score > currentShortestPathScore)
+            {
+                // printf("\t\t\tAbandoning path with length %d and score %d.\n", stackDFS.size() + 1, next.score);
+                continue;
+            }
             // Not the end, and we know next is not explored, continue downwards
-            // printf("\tRecursing into DFSAux at {%d, %d}\n", next.x, next.y);
             DFSAllPathsAux(next);
             // DFSAllPathsAux handles resetting cells once it's finished
         }
@@ -355,4 +380,6 @@ int main()
     // m.printMaze();
 
     m.DFSAllPaths();
+    int uniqueSeats = m.findUniqueCellsInValidPaths();
+    printf("We found %d unique seats on the shortest paths\n", uniqueSeats);
 }
