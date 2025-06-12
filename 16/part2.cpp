@@ -54,6 +54,7 @@ private:
 
     stack<Reindeer> stackDFS;
     vector<vector<Reindeer>> validPaths;
+    size_t currentShortestPathScore = SIZE_MAX;
 
     Cell &at(const Reindeer &pos)
     {
@@ -241,19 +242,60 @@ public:
     //     return -1;
     // }
 
+    void addToValidPaths()
+    {
+        // Add the current stackDFS to the validPaths
+        // Flipp the stack of Reindeer, then unflip and build the path.
+        std::stack<Reindeer> flipped;
+        while (!stackDFS.empty())
+        {
+            flipped.push(stackDFS.top());
+            stackDFS.pop();
+        }
+
+        // Rebuild the stack and build the valid path from the start to the end.
+        validPaths.push_back({});
+        while (!flipped.empty())
+        {
+            auto cur = flipped.top();
+            flipped.pop();
+
+            stackDFS.push(cur);
+            validPaths.back().push_back(cur);
+        }
+    }
+
     void storeValidPathStack()
     {
+        // Don't store stacks larger than shortest path
+        if (stackDFS.top().score > currentShortestPathScore)
+            return;
+
         printf("\tStoring (not yet) a stack of size %lu and with score %d\n", stackDFS.size(), stackDFS.top().score);
+        // If we've beaten our previous best, we don't care about all of the other stored 'best' paths
+        // Scrap them, and store this one.
+        if (stackDFS.top().score < currentShortestPathScore)
+        {
+            currentShortestPathScore = stackDFS.top().score;
+            validPaths.clear();
+            addToValidPaths();
+            return;
+        }
+
+        // implicit stackDFS.size() == currentShortestPath
+        addToValidPaths();
     }
+
     void DFSAllPaths()
     {
         stackDFS = {};
+        currentShortestPathScore = SIZE_MAX;
         validPaths.clear();
 
         DFSAllPathsAux(start);
 
         // validPaths should be complete
-        std::cout << validPaths.size() << std::endl;
+        std::cout << "We have " << validPaths.size() << " with a score of " << currentShortestPathScore << std::endl;
     }
 
     // This function recursively performs a DFS through the maze.
