@@ -318,11 +318,17 @@ public:
         std::cout << "We have " << validPaths.size() << " paths with a score of " << currentShortestPathScore << std::endl;
     }
 
+    int cellsSearched = 0;
+
     // This function recursively performs a DFS through the maze.
     // Each time it finds the END, it adds a 'path' vector to validPaths.
     //
     void DFSAllPathsAux(Reindeer pos)
     {
+        if (cellsSearched++ % 100000 == 0)
+        {
+            printf("\t%d cells have been searched.\n", cellsSearched);
+        }
         // let's do all the update stuff whenever we explore a cell
         // explore the cell we're searching
         auto temp = at(pos);
